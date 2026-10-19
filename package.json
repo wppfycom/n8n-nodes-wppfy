@@ -1,0 +1,43 @@
+{
+  "name": "n8n-nodes-wppfy",
+  "version": "0.1.1",
+  "description": "n8n community node for the WppFy WhatsApp API",
+  "keywords": [
+    "n8n-community-node-package",
+    "whatsapp",
+    "wppfy"
+  ],
+  "license": "MIT",
+  "homepage": "https://docs.wppfy.com",
+  "author": {
+    "name": "WppFy",
+    "email": "contact@wppfy.com"
+  },
+  "scripts": {
+    "generate": "node scripts/generate.js openapi/openapi.json nodes/Wppfy/operations.generated.ts",
+    "build": "npm run generate && tsc && node scripts/copy-assets.js && node scripts/readme.js",
+    "dev": "tsc --watch",
+    "test": "npm run build && node scripts/check.js"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.map",
+    "!dist/tsconfig.tsbuildinfo"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/WppfyApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Wppfy/Wppfy.node.js"
+    ]
+  },
+  "devDependencies": {
+    "n8n-workflow": "^2.16.0",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  }
+}
