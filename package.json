@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-wppfy",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "n8n community node for the WppFy WhatsApp API",
   "keywords": [
     "n8n-community-node-package",
@@ -30,7 +30,8 @@
       "dist/credentials/WppfyApi.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/Wppfy/Wppfy.node.js"
+      "dist/nodes/Wppfy/Wppfy.node.js",
+      "dist/nodes/WppfyTrigger/WppfyTrigger.node.js"
     ]
   },
   "devDependencies": {

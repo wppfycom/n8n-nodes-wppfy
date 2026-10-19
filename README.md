@@ -11,12 +11,15 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT license" /></a>
 </p>
 
-Automate WhatsApp from [n8n](https://n8n.io): send text, media, menus, carousels and PIX buttons, manage chats, contacts, groups, communities and channels, run your CRM and business catalog, all from one node. Every endpoint of the [WppFy API reference](https://docs.wppfy.com/en/api-reference/start-here) is available as an operation, and the node can be used as a tool by n8n AI agents.
+Automate WhatsApp from [n8n](https://n8n.io) with two nodes:
+
+- **WppFy**: send text, media, menus, carousels and PIX buttons, manage chats, contacts, groups, communities and channels, run your CRM and business catalog. Every endpoint of the [WppFy API reference](https://docs.wppfy.com/en/api-reference/start-here) is available as an operation, and the node can be used as a tool by n8n AI agents.
+- **WppFy Trigger**: start workflows when messages and other WhatsApp events arrive. The webhook is registered and removed automatically.
 
 - [Installation](#installation)
 - [Credentials](#credentials)
 - [Usage](#usage)
-- [Receiving messages](#receiving-messages)
+- [Receiving messages (WppFy Trigger)](#receiving-messages-wppfy-trigger)
 - [Using with AI agents](#using-with-ai-agents)
 - [Operations](#operations)
 - [Compatibility](#compatibility)
@@ -85,15 +88,25 @@ Fields with lists or objects (menu choices, carousel cards, group participants, 
 
 Send operations support placeholders such as `{{name}}`, `{{first_name}}` and `{{lead_email}}`, filled by WppFy with the chat's data. In n8n, write them inside a plain string (not an expression), or escape them in expressions as `{{ "{{name}}" }}`.
 
-## Receiving messages
+## Receiving messages (WppFy Trigger)
 
-To react to incoming messages, connect your instance's webhook to n8n:
+Add the **WppFy Trigger** node to start a workflow on WhatsApp events.
 
-1. Add a **Webhook** node (method `POST`) and copy its **Production URL**.
-2. Configure the instance webhook with that URL, in the WppFy dashboard or as described in [Configure Webhook](https://docs.wppfy.com/en/api-reference/webhooks).
-3. Activate the workflow. Each WhatsApp event (new message, status update, group change...) starts an execution with the event payload.
+| Parameter | Description |
+| --- | --- |
+| **Events** | Events that start the workflow: Messages, Message Updates, Connection, Groups, Call, Presence, Chats, Labels, Contacts, Status Posts, Newsletter Messages... (default: Messages) |
+| **Ignore Messages** | Filters applied by WppFy before sending: Sent by API, Sent by Me, Received Messages, Groups, Private Chats (default: Sent by API) |
+| **Options → Include Instance Token** | Keep the instance token that comes in the payload. Off by default, since it is a secret |
 
-Tip: exclude messages sent by the API (`excludeMessages: ["wasSentByApi"]`) to avoid reply loops.
+How it works:
+
+- When you **activate** the workflow, the node adds a webhook to the instance pointing to n8n. When you **deactivate** it, that webhook is removed.
+- Webhooks you already have on the instance are not changed; the trigger adds its own.
+- Each event becomes one item with the event payload (`EventType`, `message`, `chat`, `owner`, ...).
+- Keep **Ignore Messages → Sent by API** if the workflow replies with the WppFy node; otherwise your own replies trigger the workflow again.
+- n8n must be reachable from the internet (n8n Cloud, or self-hosted with a public `WEBHOOK_URL`) for events to arrive.
+
+Prefer the raw approach? A regular **Webhook** node works too: copy its production URL and configure it as described in [Configure Webhook](https://docs.wppfy.com/en/api-reference/webhooks).
 
 ## Using with AI agents
 
@@ -379,7 +392,7 @@ Operations are grouped by resource, matching the sections of the [API reference]
 </details>
 <!-- operations:end -->
 
-The streaming endpoint `GET /sse` is not included; use a webhook to receive events in n8n.
+The streaming endpoint `GET /sse` is not included; use the **WppFy Trigger** to receive events in n8n.
 
 ## Compatibility
 
