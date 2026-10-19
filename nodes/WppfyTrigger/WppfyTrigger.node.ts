@@ -39,6 +39,9 @@ const EXCLUDE_FILTERS = [
 interface WebhookEntry {
 	id?: string;
 	url?: string;
+	enabled?: boolean;
+	events?: string[];
+	excludeMessages?: string[];
 }
 
 async function wppfyRequest(this: IHookFunctions, method: IHttpRequestMethods, body?: IDataObject) {
@@ -61,6 +64,17 @@ async function wppfyRequest(this: IHookFunctions, method: IHttpRequestMethods, b
 // URL-encoded, so match both forms.
 const isSameUrl = (registered: string | undefined, webhookUrl: string) =>
 	!!registered && (registered === webhookUrl || registered.includes(encodeURIComponent(webhookUrl)));
+
+const sameItems = (a: string[] = [], b: string[] = []) => a.length === b.length && a.every((item) => b.includes(item));
+
+const webhookSettings = (context: IHookFunctions, webhookUrl: string): IDataObject => ({
+	url: webhookUrl,
+	enabled: true,
+	events: context.getNodeParameter('events', []) as string[],
+	excludeMessages: context.getNodeParameter('excludeMessages', []) as string[],
+	addUrlEvents: false,
+	addUrlTypesMessages: false,
+});
 
 const toList = (response: unknown): WebhookEntry[] => (Array.isArray(response) ? (response as WebhookEntry[]) : []);
 
@@ -145,24 +159,23 @@ export class WppfyTrigger implements INodeType {
 				const existing = toList(await wppfyRequest.call(this, 'GET')).find((w) => isSameUrl(w.url, webhookUrl));
 				if (!existing || !existing.id) return false;
 				webhookData.webhookId = existing.id;
+
+				// The webhook may have been registered with other events/filters before the node was edited.
+				const settings = webhookSettings(this, webhookUrl);
+				const upToDate =
+					existing.enabled !== false &&
+					sameItems(existing.events, settings.events as string[]) &&
+					sameItems(existing.excludeMessages, settings.excludeMessages as string[]);
+				if (!upToDate) {
+					await wppfyRequest.call(this, 'POST', { action: 'update', id: existing.id, ...settings });
+				}
 				return true;
 			},
 
 			async create(this: IHookFunctions): Promise<boolean> {
 				const webhookData = this.getWorkflowStaticData('node');
 				const webhookUrl = this.getNodeWebhookUrl('default') as string;
-				const events = this.getNodeParameter('events', []) as string[];
-				const excludeMessages = this.getNodeParameter('excludeMessages', []) as string[];
-
-				const response = await wppfyRequest.call(this, 'POST', {
-					action: 'add',
-					url: webhookUrl,
-					enabled: true,
-					events,
-					excludeMessages,
-					addUrlEvents: false,
-					addUrlTypesMessages: false,
-				});
+				const response = await wppfyRequest.call(this, 'POST', { action: 'add', ...webhookSettings(this, webhookUrl) });
 
 				let created = toList(response).find((w) => isSameUrl(w.url, webhookUrl));
 				if (!created) {
